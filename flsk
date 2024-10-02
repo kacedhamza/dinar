@@ -1,0 +1,58 @@
+from flask import Flask, jsonify
+from flask_cors import CORS
+import requests
+from bs4 import BeautifulSoup
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route('/get_currency_rates')
+def get_currency_rates():
+    url = "https://devisesquare.com/"
+    response = requests.get(url)
+    rates = {}
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        currencies = soup.find_all('div', class_='exchange')
+
+        # التعامل مع اليورو
+        if len(currencies) > 1:
+            euro_section = currencies[1]
+            euro_buy = euro_section.find('div', class_='buy')
+            euro_sell = euro_section.find('div', class_='sell')
+            if euro_buy and euro_sell:
+                euro_buy_rate = euro_buy.find('h1').text.strip() + euro_buy.find('span').text.strip()
+                euro_sell_rate = euro_sell.find('h1').text.strip() + euro_sell.find('span').text.strip()
+                rates['euro'] = {'buy': euro_buy_rate, 'sell': euro_sell_rate}
+            else:
+                print("Error fetching Euro data")
+
+        # التعامل مع الدولار
+        if len(currencies) > 2:
+            dollar_section = currencies[2]
+            dollar_buy = dollar_section.find('div', class_='buy')
+            dollar_sell = dollar_section.find('div', class_='sell')
+            if dollar_buy and dollar_sell:
+                dollar_buy_rate = dollar_buy.find('h1').text.strip() + dollar_buy.find('span').text.strip()
+                dollar_sell_rate = dollar_sell.find('h1').text.strip() + dollar_sell.find('span').text.strip()
+                rates['usd'] = {'buy': dollar_buy_rate, 'sell': dollar_sell_rate}
+            else:
+                print("Error fetching USD data")
+
+        # التعامل مع الجنيه الاسترليني
+        if len(currencies) > 3:
+            gbp_section = currencies[3]
+            gbp_buy = gbp_section.find('div', class_='buy')
+            gbp_sell = gbp_section.find('div', class_='sell')
+            if gbp_buy and gbp_sell:
+                gbp_buy_rate = gbp_buy.find('h1').text.strip() + gbp_buy.find('span').text.strip()
+                gbp_sell_rate = gbp_sell.find('h1').text.strip() + gbp_sell.find('span').text.strip()
+                rates['gbp'] = {'buy': gbp_buy_rate, 'sell': gbp_sell_rate}
+            else:
+                print("Error fetching GBP data")
+
+    return jsonify(rates)
+
+if __name__ == '__main__':
+    app.run(debug=True)
